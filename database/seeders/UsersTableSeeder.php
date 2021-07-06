@@ -7,6 +7,7 @@ namespace Database\Seeders;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Ramsey\Uuid\Uuid;
 
 class UsersTableSeeder extends Seeder
 {
@@ -23,6 +24,7 @@ class UsersTableSeeder extends Seeder
             'name' => 'John Doe',
             'email' => 'admin@gmail.com',
             'password' => bcrypt('123456'),
+            'recipient_id' => Uuid::uuid4(),
             'type' => 'admin',
         ]);
     }

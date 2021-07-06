@@ -63,7 +63,7 @@ const router = new VueRouter({
  * or customize the JavaScript scaffolding to fit your unique needs.
  */
 
- 
+
 // Components
 Vue.component('pagination', require('laravel-vue-pagination'));
 Vue.component('dashboard', require('./components/Dashboard.vue'));
@@ -99,6 +99,11 @@ Vue.filter('yesno', value => (value ? '<i class="fas fa-check green"></i>' : '<i
 // end Filter
 
 Vue.component('example-component', require('./components/ExampleComponent.vue'));
+
+
+window.IP_SERVER = "http://18.221.161.64:3000/api/";
+window.IP_SOCKET_IO = "http://18.221.161.64:3000/";
+window.SECRET_KEY = "THISISMYSECURETOKEN";
 
 const app = new Vue({
     el: '#app',

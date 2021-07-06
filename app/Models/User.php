@@ -74,4 +74,10 @@ class User extends Authenticatable // implements MustVerifyEmail
     {
         return $this->roles()->where('name', 'User')->exists();
     }
+
+    public function phones()
+    {
+//        dd($this->hasMany(Phone::class)->get());
+        return $this->hasMany(Phone::class);
+    }
 }

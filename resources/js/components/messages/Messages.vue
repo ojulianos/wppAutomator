@@ -32,14 +32,11 @@
                                 <tbody>
                                 <tr v-for="message in messages.data" :key="message.id">
 
-                                    <td>{{message.id}}</td>
-                                    <td>{{message.name}}</td>
-                                    <td>{{message.description | truncate(30, '...')}}</td>
-                                    <td>{{message.category.name}}</td>
-                                    <td>{{message.price}}</td>
-                                    <!-- <td><img v-bind:src="'/' + message.photo" width="100" alt="message"></td> -->
+                                    <td>{{message.description}}</td>
+                                    <td>{{message.body | truncate(30, '...')}}</td>
+                                    <td>{{message.tags }}</td>
+                                    <td>{{message.type }}</td>
                                     <td>
-
                                         <a href="#" @click="editModal(message)">
                                             <i class="fa fa-edit blue"></i>
                                         </a>
@@ -73,52 +70,51 @@
                             </button>
                         </div>
 
-                        <form @submit.prevent="editmode ? updateProduct() : createProduct()">
+                        <form @submit.prevent="editmode ? updateMessage() : createMessage()">
                             <div class="modal-body">
                                 <div class="form-group">
-                                    <label>Name</label>
-                                    <input v-model="form.name" type="text" name="name"
-                                           class="form-control" :class="{ 'is-invalid': form.errors.has('name') }">
-                                    <has-error :form="form" field="name"></has-error>
-                                </div>
-                                <div class="form-group">
-                                    <label>Description</label>
+                                    <label>Descrição</label>
                                     <input v-model="form.description" type="text" name="description"
                                            class="form-control" :class="{ 'is-invalid': form.errors.has('description') }">
                                     <has-error :form="form" field="description"></has-error>
                                 </div>
                                 <div class="form-group">
-                                    <label>Price</label>
-                                    <input v-model="form.price" type="text" name="price"
-                                           class="form-control" :class="{ 'is-invalid': form.errors.has('price') }">
-                                    <has-error :form="form" field="price"></has-error>
+                                    <label>Mensagem</label>
+                                    <textarea v-model="form.body"
+                                              type="text"
+                                              name="body"
+                                              class="form-control"
+                                              :class="{ 'is-invalid': form.errors.has('body') }"
+                                              rows="4"
+                                    ></textarea>
+                                    <has-error :form="form" field="body"></has-error>
                                 </div>
                                 <div class="form-group">
-
-                                    <label>Category</label>
-                                    <select class="form-control" v-model="form.category_id">
+                                    <label>Número de Referência</label>
+                                    <input v-model="form.reference_id" type="number" name="reference_id"
+                                           class="form-control" :class="{ 'is-invalid': form.errors.has('reference_id') }">
+                                    <has-error :form="form" field="reference_id"></has-error>
+                                </div>
+                                <div class="form-group">
+                                    <label>Tipo</label>
+                                    <select class="form-control" v-model="form.type">
                                         <option
-                                            v-for="(cat,index) in categories" :key="index"
-                                            :value="index"
-                                            :selected="index == form.category_id">{{ cat }}</option>
+                                            v-for="tipo in tipos" :key="tipo.code"
+                                            :value="tipo.code"
+                                            :selected="tipo.code == form.type">{{ tipo.value }}</option>
                                     </select>
-                                    <has-error :form="form" field="category_id"></has-error>
+                                    <has-error :form="form" field="type"></has-error>
                                 </div>
                                 <div class="form-group">
                                     <label>Tags</label>
-                                    <vue-tags-input
-                                        v-model="form.tag"
-                                        :tags="form.tags"
-                                        :autocomplete-items="filteredItems"
-                                        @tags-changed="newTags => form.tags = newTags"
-                                    />
+                                    <input v-model="form.tags" type="text" name="tags"
+                                           class="form-control" :class="{ 'is-invalid': form.errors.has('tags') }">
                                     <has-error :form="form" field="tags"></has-error>
                                 </div>
                             </div>
                             <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-                                <button v-show="editmode" type="submit" class="btn btn-success">Update</button>
-                                <button v-show="!editmode" type="submit" class="btn btn-primary">Create</button>
+                                <button type="button" class="btn btn-secondary" data-dismiss="modal">Fechar</button>
+                                <button type="submit" class="btn btn-success">Salvar</button>
                             </div>
                         </form>
                     </div>
@@ -142,20 +138,30 @@ export default {
             form: new Form({
                 id : '',
                 description : '',
+                reference_id: '',
                 type: '',
                 body: '',
+                tag: '',
                 tags:  [],
             }),
+            tipos: [
+                { code: 'primeiro-contato', value: 'Primeiro Contato', status: true },
+                { code: 'mensagem', value: 'Mensagem de Resposta', status: true },
+                { code: 'resultados', value: 'Mensagem de Resultados', status: true },
+                { code: 'nao-encontrato', value: 'Mensagem de Não Encontrado', status: true },
+                { code: 'finalizacao', value: 'Mensagem de Finalização', status: true },
+            ],
+            autocompleteItems: [],
         }
     },
     methods: {
         getResults(page = 1) {
             this.$Progress.start();
-            axios.get(`api/phoneMessage/${this.$route.params.id}?page=${page}`).then(({ data }) => (this.messages = data.data));
+            axios.get(`/api/phoneMessage/${this.$route.params.id}?page=${page}`).then(({ data }) => (this.messages = data.data));
             this.$Progress.finish();
         },
         loadMessages(){
-            axios.get(`api/phoneMessage/${this.$route.params.id}`).then(({ data }) => (this.messages = data.data));
+            axios.get(`/api/phoneMessage/${this.$route.params.id}`).then(({ data }) => (this.messages = data.data));
         },
         editModal(message){
             this.editmode = true;
@@ -168,10 +174,10 @@ export default {
             this.form.reset();
             $('#addNew').modal('show');
         },
-        createProduct(){
+        createMessage(){
             this.$Progress.start();
 
-            this.form.post(`api/phoneMessage/${this.$route.params.id}`)
+            this.form.post(`/api/phoneMessage/${this.$route.params.id}`)
                 .then((data)=>{
                     if(data.data.success){
                         $('#addNew').modal('hide');
@@ -200,9 +206,9 @@ export default {
                     });
                 })
         },
-        updateProduct(){
+        updateMessage(){
             this.$Progress.start();
-            this.form.put(`api/phoneMessage/${this.form.id}`)
+            this.form.put(`/api/phoneMessage/${this.form.id}`)
                 .then((response) => {
                     $('#addNew').modal('hide');
                     Toast.fire({
@@ -228,7 +234,7 @@ export default {
                 confirmButtonText: 'Yes, delete it!'
             }).then((result) => {
                 if (result.value) {
-                    this.form.delete(`api/phoneMessage/${id}`).then(()=>{
+                    this.form.delete(`/api/phoneMessage/${id}`).then(()=>{
                         Swal.fire(
                             'Deleted!',
                             'Your file has been deleted.',
@@ -251,8 +257,16 @@ export default {
         this.$Progress.finish();
     },
     filters: {
+        truncate: function (text, length, suffix) {
+            return text.substring(0, length) + suffix;
+        },
     },
     computed: {
+        filteredItems() {
+            return this.autocompleteItems.filter(i => {
+                return i.text.toLowerCase().indexOf(this.tag.toLowerCase()) !== -1;
+            });
+        },
     },
 }
 </script>

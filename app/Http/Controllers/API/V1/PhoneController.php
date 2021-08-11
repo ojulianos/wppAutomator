@@ -3,8 +3,6 @@
 namespace App\Http\Controllers\API\V1;
 
 use App\Http\Requests\StoreUpdatePhoneRequest;
-use App\Models\Phone;
-use Illuminate\Http\Request;
 
 class PhoneController extends BaseController
 {
@@ -19,27 +17,27 @@ class PhoneController extends BaseController
     public function index()
     {
         $phones = $this->phone
-            ->paginate()
-            ->getCollection()
+            ->paginate();
+        $phones->getCollection()
             ->transform(function ($value) {
-            return [
-                'id' => $value->id,
-                'name' => $value->name,
-                'phone_number' => $value->phone_number,
-                'platform' => $value->platform,
-                'platform_api_url' => $value->platform_api_url,
-                'total_messages' => $value->messages->count(),
-                'status' => $value->status,
-            ];
-        });
+                return [
+                    'id' => $value->id,
+                    'name' => $value->name,
+                    'phone_number' => $value->phone_number,
+                    'platform' => $value->platform,
+                    'platform_api_url' => $value->platform_api_url,
+                    'total_messages' => $value->messages->count(),
+                    'status' => $value->status,
+                ];
+            });
 
         return $this->sendResponse($phones, 'phones list');
     }
 
     public function store(StoreUpdatePhoneRequest $request)
     {
-        $phone = $this->phone->createNew();
-        dd($phone);
+        if(!$phone = $this->phone->create($request->all()))
+            return $this->sendError('Erro ao cadastrar o telefone');
 
         return $this->sendResponse($phone, 'Telefone Cadastrado');
     }
@@ -51,19 +49,26 @@ class PhoneController extends BaseController
         return $this->sendResponse($phone, 'Detalhes do telefone');
     }
 
-    public function update($id, Request $request)
+    public function update($id, StoreUpdatePhoneRequest $request)
     {
-        $request->validate($this->phone->rules());
-        $phone = $this->phone->find($id);
+        if(!$phone = $this->phone->findOrFail($id))
+            return $this->sendError('Telefone não encontrado.');
 
-        return $this->sendResponse($phone->save($request->all()), 'Telefone Atualizado');
+        if(!$phone->update($request->all()))
+            return $this->sendError('Telefone não atualizado.');
+
+        return $this->sendResponse($phone, 'Telefone Atualizado');
     }
 
     public function destroy($id)
     {
-        $phone = $this->phone->find($id);
+        if(!$phone = $this->phone->findOrFail($id))
+            return $this->sendError('Telefone não encontrado.');
 
-        return $this->sendResponse($phone->destroy($id), 'Telefone Excluído');
+        if(!$phone->destroy($id))
+            return $this->sendError('Telefone não excluído.');
+
+        return $this->sendResponse($phone, 'Telefone Excluído');
     }
 
 }

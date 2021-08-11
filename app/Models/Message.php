@@ -10,11 +10,13 @@ class Message extends Model
     use PhoneNumberTrait;
 
     protected $fillable = [
-        'reference_id', 'reference_phone', 'description', 'body'
-    ];
-
-    protected $hidden = [
-        'message_id', 'id'
+        'message_id',
+        'reference_id',
+        'reference_phone',
+        'description',
+        'body',
+        'tags',
+        'type',
     ];
 
     protected $search = [
@@ -30,29 +32,9 @@ class Message extends Model
         ];
     }
 
-    public function rules(){
-        return [
-            'message_id' => 'nullable|exists:messages,id',
-            'reference_id' => 'required|numeric',
-            'reference_phone' => 'required|exists:phones,phone_number',
-            'description' => 'required|min:5',
-            'body' => 'required|min:5',
-        ];
-    }
-
     public function phone()
     {
         return $this->belongsTo(Phone::class);
-    }
-
-    public function createNew($phone)
-    {
-        $this->message_id = request()->message_id;
-        $this->reference_id = request()->reference_id;
-        $this->reference_phone = $phone;
-        $this->description = request()->description;
-        $this->body = request()->body;
-        return $this->save();
     }
 
     public function messageByReference()

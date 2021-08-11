@@ -178,6 +178,7 @@ return [
         App\Providers\RouteServiceProvider::class,
 
         App\Providers\ProductRepositoryServiceProvider::class,
+        WPPConnectTeam\Wppconnect\WppconnectServiceProvider::class,
     ],
 
     /*
@@ -230,6 +231,7 @@ return [
         'Validator' => Illuminate\Support\Facades\Validator::class,
         'View' => Illuminate\Support\Facades\View::class,
 
+        'Wppconnect' => WPPConnectTeam\Wppconnect\Facades\Wppconnect::class,
     ],
 
 ];

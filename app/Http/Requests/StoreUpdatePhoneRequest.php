@@ -24,7 +24,7 @@ class StoreUpdatePhoneRequest extends FormRequest
     public function rules()
     {
         return [
-            'phone_number' => 'required|numeric',
+            'phone_number' => 'required|numeric|min:5',
             'name' => 'required|min:5',
             'platform' => 'required|in:woocommerce,outros',
             'platform_api_url' => 'nullable',

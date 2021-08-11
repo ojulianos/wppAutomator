@@ -2,165 +2,67 @@
 
 namespace App\Http\Controllers\API\V1;
 
-use App\Models\Contact;
+use App\Http\Requests\StoreUpdateMessageRequest;
 use App\Models\Message;
-use App\Models\Phone;
-use App\Models\Whatsapp;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Http;
 
 class MessageController extends BaseController
 {
-    /**
-     * @var Message
-     */
-    private $message;
-    /**
-     * @var Contact
-     */
-    private Contact $contact;
+    private $phone;
 
-    /**
-     * Create a new controller instance.
-     *
-     * @param Message $message
-     */
     public function __construct()
     {
-//        $this->message = $message;
-//        $this->contact = $contact;
+        $this->middleware('auth:api');
+        $this->phone = auth('api')->user()->phones();
     }
-
 
     public function index($phone)
     {
-        $phone = Phone::find($phone);
-        $messages = $phone->messages->paginate();
+        $messages = $this->phone->findOrFail($phone)->messages()->paginate();
 
-        return response()->json($messages);
+        return $this->sendResponse($messages, 'messages list');
     }
 
-    public function store($phone, Request $request)
+    public function store($phone, StoreUpdateMessageRequest $request)
     {
-        $this->validate($request, $this->message->rules());
+        $phone = $this->phone->findOrFail($phone);
+        $messages = new Message;
 
-        return $this->message->createNew($phone);
+        $messages->reference_id = $request->reference_id;
+        $messages->reference_phone = $phone->phone_number;
+        $messages->description = $request->description;
+        $messages->body = $request->body;
+        $messages->tags = collect($request->tags)->implode('text', ',');
+        $messages->type = $request->type;
+
+        if(!$messages->save())
+            return $this->sendError('Erro ao cadastrar o mensagem');
+
+        return $this->sendResponse($messages, 'Mensagem Cadastrado');
     }
 
-    public function show($phone, $id)
+    public function update($id, StoreUpdateMessageRequest $request)
     {
-        $message = $this->message->where('reference_phone', $phone)->find($id);
+        if(!$messages = Message::find($id))
+            return $this->sendError('Mensagem não encontrada');
 
-        return $message;
+        $messages->reference_id = $request->reference_id;
+        $messages->description = $request->description;
+        $messages->body = $request->body;
+        $messages->tags = collect($request->tags)->implode('text', ',');
+        $messages->type = $request->type;
+
+        if(!$messages->save())
+            return $this->sendError('Mensagem não atualizada');
+
+        return $this->sendResponse($messages, 'Mensagem Cadastrado');
     }
 
-    public function update($phone, $id, Request $request)
+    public function destroy($id)
     {
-        $this->validate($request, $this->message->rules());
-        $message = $this->message->where('reference_phone', $phone)->find($id);
+        if(!$messages = Message::find($id))
+            return $this->sendError('Mensagem não encontrada');
 
-        return $message->save($request->all());
+        return $messages->destroy($id);
     }
 
-    public function destroy($phone, $id)
-    {
-        $message = $this->message->where('reference_phone', $phone)->find($id);
-
-        return $message->destroy($id);
-    }
-
-
-    /*
- {
-    "event":"onack",
-    "session":"oooooo",
-    "id":{
-        "fromMe":false,
-        "remote":"554891345850@c.us",
-        "id":"3EB024BA372599959E38",
-        "_serialized":"false_554891345850@c.us_3EB024BA372599959E38"
-    },
-    "body":"oi",
-    "type":"chat",
-    "t":1622466548,
-    "notifyName":"",
-    "from":"554891345850@c.us",
-    "to":"555182346281@c.us",
-    "self":"in",
-    "ack":3,
-    "invis":false,
-    "isNewMsg":true,
-    "star":false,
-    "recvFresh":true,
-    "isFromTemplate":false,
-    "broadcast":false,
-    "mentionedJidList":[],
-    "isVcardOverMmsDocument":false,
-    "isForwarded":false,
-    "labels":[],
-    "isDynamicReplyButtonsMsg":false
-}
-
-         * 1 - IDENTIFICA SE É O PRIMEIRO CONTATO
-         *  1.1 - MANDA MENSAGEM DE BOAS VINDAS
-         *  1.2 - MANDAR MENSAGEM DE BOAS VINDAS PERSONALIZADA
-         *
-         * 2 - IDENTIFICA A PLATAFORMA
-         *  2.1 - CASO A PLATAFORMA NECESSITE DO DOCUMENTO OU NUMERO DO PEDIDO PEDIR O DADO
-         *  2.2 - COMUNICAR COM A PLATAFORMA
-         *  2.3 - ENVIAR RESUDO DO PEDIDO PARA USUÁRIO
-         *
-         * 3 - BUSCAR MENSAGEM
-         *  3.1 - EXIBIR MENSAGEM DE UM RESULTADO
-         *  3.2 - EXIBIR MENSAGEM DE RESULTADOS
-         *  3.3 - EXIBIR MENSAGEM DE RESULTADO NÃO ENCONTRADO E CHAMAR ATENDENTE HUMANO
-         *
-         * 4 - MENSAGEM DE ADEUS/FINALIZAÇÃO
-         *
-         * */
-    public function getQuestions(Request $request)
-    {
-        try {
-            if(!$contact = $this->contact->firstContact()) {
-
-            }
-
-            $this->validate($request, $this->message->rules());
-
-            if(!$message = $this->message->messageByReference()) {
-                $message = $this->searchByReference();
-            }
-
-            return response()->json([
-                'response' => $message->body ?? $message
-            ]);
-        } catch (\Throwable $th) {
-            return response()->json([
-                'response' => $th->getMessage()
-            ]);
-        }
-    }
-
-    public function newQuestion(Request $request)
-    {
-        $whatsapp = new Whatsapp;
-
-        return $whatsapp->sendMessage($request->number, $request->message);
-    }
-
-    /**
-     * @return string
-     */
-    private function searchByReference(): string
-    {
-        if (!$messages = $this->message->searchByReference()) {
-            throw new \DomainException('Não encontramos respostas, estamos direcionando voc6e para um atendente.');
-        }
-
-        $message = "Não encontramos o que você busca, mas talvez um dos tópicos abaixo ajudem: \n \n";
-        foreach ($messages as $me) {
-            $message .= "Para *$me->description* digite $me->reference_id\n";
-        }
-        return $message;
-    }
 }

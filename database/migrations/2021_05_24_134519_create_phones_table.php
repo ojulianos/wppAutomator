@@ -17,7 +17,7 @@ class CreatePhonesTable extends Migration
             $table->id();
             $table->unsignedBigInteger('user_id');
             $table->unsignedBigInteger('phone_number');
-            $table->string('name', 20);
+            $table->string('name', 60);
             $table->enum('platform', ['woocommerce','outros'])->default('outros')->nullable();
             $table->text('platform_api_url')->nullable();
             $table->timestamps();

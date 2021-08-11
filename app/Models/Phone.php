@@ -11,7 +11,7 @@ class Phone extends Model
     use PhoneNumberTrait;
 
     protected $fillable = [
-        'phone_number', 'name', 'platform', 'platform_api_url'
+        'phone_number', 'name', 'platform', 'platform_api_url', 'platform_api_key'
     ];
 
     protected $search = [
@@ -30,15 +30,6 @@ class Phone extends Model
     public function messages()
     {
         return $this->hasMany(Message::class, 'reference_phone', 'phone_number');
-    }
-
-    public function createNew()
-    {
-        $this->phone_number = request()->phone_number;
-        $this->name = request()->name;
-        $this->platform = request()->platform;
-        $this->platform_api_url = request()->platform_api_url;
-        return $this->save();
     }
 
     public function getStatusAttribute()
